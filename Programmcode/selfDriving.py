@@ -347,9 +347,6 @@ if __name__ == "__main__":
 
             # Driving around obstacles
             if distanceRed != 0 and nearestObstacleColor == "red" and distanceRight > 25 and not steeringBlocked and avoidingAllowed and redObjX > 250:
-                avoidingDuration = (distanceRight ** (1 / 3)) / 5
-                if avoidingDuration > 0.75:
-                    avoidingDuration = 0.75
                 avoidingDuration = 0.4
                 print("Now correcting right (red obstacle)")
                 steerRight()
@@ -365,9 +362,6 @@ if __name__ == "__main__":
                 avoidingDistance = distanceRed
                 avoidingColor = "red"
             if distanceGreen != 0 and nearestObstacleColor == "green" and distanceLeft > 25 and not steeringBlocked and avoidingAllowed and greenObjX < 550:
-                avoidingDuration = (distanceRight ** (1 / 3)) / 5
-                if avoidingDuration > 0.75:
-                    avoidingDuration = 0.75
                 avoidingDuration = 0.4
                 print("Now correcting left (green obstacle)")
                 steerLeft()
