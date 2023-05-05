@@ -22,11 +22,12 @@ Das Roboter-Auto verfügt neben einer Kamera  mit Weitwinkellinse
 
 
 ## Software
+
 ### Eröffnungsrennen
 #### Kurven
 ![Flussdiagramm zum Kurvenfahren](https://user-images.githubusercontent.com/128396963/236560181-bcf6c7e0-176b-4ac8-8dcf-6b0db0ab8153.jpeg)
-
 #### Korrekturen
+![Flussdiagramm zum Korrigieren](https://user-images.githubusercontent.com/128396963/236562212-91d419c3-25d5-4b6d-8efb-cccdcb9835c8.jpeg)
 
 ### Hindernisrennen
 ![Flussdiagramm zur Hindernisumfahrung](https://user-images.githubusercontent.com/128396963/236519192-251315be-2b41-4ad9-8319-2199691f5c98.jpeg)
