@@ -22,6 +22,9 @@ Das Roboter-Auto verfügt neben einer Kamera  mit Weitwinkellinse auch über 3 U
 
 ## Software
 ### Eröffnungsrennen
+#### Kurven
+
+#### Korrekturen
 
 ### Hindernisrennen
 ![Flussdiagramm zur Hindernisumfahrung](https://user-images.githubusercontent.com/128396963/236519192-251315be-2b41-4ad9-8319-2199691f5c98.jpeg)
