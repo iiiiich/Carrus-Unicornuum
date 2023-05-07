@@ -2,11 +2,11 @@
 World Robot Olympiad 2023 Future Engineers
 
 ## Ordnerstruktur
+- Im Ordner `3D-Modelle` befindet sich eine .step-Datei, in der alle 3D-Modelle von 3D-gedruckten Komponenten des Roboters zu finden sind.
 - Im Ordner `Programmcode` befindet sich der Code, der vom Roboter zum autonomen Fahren verwendet wird, sowie anderer Code, der zur Umsetzung benötigt wird.
 - Im Ordner `Roboterauto` befinden sich sechs Fotos des Roboters, die ihn von allen Seiten zeigen.
 - Im Ordner `Schaltpläne` befindet sich ein Schaltplan, auf dem zu erkenn ist, wie die einzelnen Komponenten miteinander verbunden sind.
 - Im Ordner `Technische Zeichnungen` befinden sich technische Zeichnungen von 3D-gedruckten Komponenten des Roboterautos.
-- Im Ordner `3D-Modelle` befindet sich eine .step-Datei, in der alle 3D-Modelle von 3D-gedruckten Komponenten des Roboters zu finden sind.
 - Im Ordner `Video` befinden sich zwei Links zu YouTube-Videos, die den Roboter bei der autonomen Fahrt sowohl beim Eröffnungs- als auch beim Hindernisrennen zeigen.
 
 ## Hardware
