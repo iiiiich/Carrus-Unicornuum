@@ -1,8 +1,9 @@
-import RPi.GPIO as GPIO
+import math
 import time
+
+import RPi.GPIO as GPIO
 import cv2 as cv
 import numpy as np
-import math
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
@@ -10,41 +11,41 @@ GPIO.setwarnings(False)
 speed = 65
 
 # HSV limits for color detection
-lowerRed = np.array([0, 186, 80])
-upperRed = np.array([12, 255, 235])
-lowerGreen = np.array([45, 112, 60])
-upperGreen = np.array([77, 255, 241])
+lower_red = np.array([0, 186, 80])
+upper_red = np.array([12, 255, 235])
+lower_green = np.array([45, 112, 60])
+upper_green = np.array([77, 255, 241])
 
 # Variables for camera distance calculation
-knownHeight = 100
-focalLength = 567.0
+known_height = 100
+focal_length = 567.0
 
 # Initialising button, motors and ultrasonic distance sensors
-buttonPin = 40
-Ena, In1, In2 = 3, 5, 7
+button_pin = 40
+ena, in1, in2 = 3, 5, 7
 servo = 29
-trigFront, echoFront = 13, 18
-trigRight, echoRight = 11, 15
-trigLeft, echoLeft = 12, 16
+trig_front, echo_front = 13, 18
+trig_right, echo_right = 11, 15
+trig_left, echo_left = 12, 16
 
-GPIO.setup(buttonPin, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-GPIO.setup(Ena, GPIO.OUT)
-GPIO.setup(In1, GPIO.OUT)
-GPIO.setup(In2, GPIO.OUT)
+GPIO.setup(button_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(ena, GPIO.OUT)
+GPIO.setup(in1, GPIO.OUT)
+GPIO.setup(in2, GPIO.OUT)
 GPIO.setup(servo, GPIO.OUT)
-GPIO.setup(trigFront, GPIO.OUT)
-GPIO.setup(echoFront, GPIO.IN)
-GPIO.setup(trigRight, GPIO.OUT)
-GPIO.setup(echoRight, GPIO.IN)
-GPIO.setup(trigLeft, GPIO.OUT)
-GPIO.setup(echoLeft, GPIO.IN)
+GPIO.setup(trig_front, GPIO.OUT)
+GPIO.setup(echo_front, GPIO.IN)
+GPIO.setup(trig_right, GPIO.OUT)
+GPIO.setup(echo_right, GPIO.IN)
+GPIO.setup(trig_left, GPIO.OUT)
+GPIO.setup(echo_left, GPIO.IN)
 
-motorPwm = GPIO.PWM(Ena, 100)
-motorPwm.start(0)
-servoPwm = GPIO.PWM(servo, 50)
-servoPwm.start(0)
-GPIO.output(In1, GPIO.LOW)
-GPIO.output(In2, GPIO.LOW)
+motor_pwm = GPIO.PWM(ena, 100)
+motor_pwm.start(0)
+servo_pwm = GPIO.PWM(servo, 50)
+servo_pwm.start(0)
+GPIO.output(in1, GPIO.LOW)
+GPIO.output(in2, GPIO.LOW)
 
 # Initialising camera
 cap = cv.VideoCapture(0)
@@ -55,503 +56,472 @@ if not cap.isOpened():
 
 # Function to move forward
 def forward(x):
-    motorPwm.ChangeDutyCycle(x)
-    GPIO.output(In1, GPIO.HIGH)
-    GPIO.output(In2, GPIO.LOW)
+    motor_pwm.ChangeDutyCycle(x)
+    GPIO.output(in1, GPIO.HIGH)
+    GPIO.output(in2, GPIO.LOW)
 
 
 # Function to move backward
 def backward(x):
-    motorPwm.ChangeDutyCycle(x)
-    GPIO.output(In1, GPIO.LOW)
-    GPIO.output(In2, GPIO.HIGH)
+    motor_pwm.ChangeDutyCycle(x)
+    GPIO.output(in1, GPIO.LOW)
+    GPIO.output(in2, GPIO.HIGH)
 
 
 # Function to stop
 def stop():
-    GPIO.output(In1, GPIO.LOW)
-    GPIO.output(In2, GPIO.LOW)
+    GPIO.output(in1, GPIO.LOW)
+    GPIO.output(in2, GPIO.LOW)
 
 
 # Function to steer forward
-def steerForward():
-    servoPwm.ChangeDutyCycle(7.3)
+def steer_forward():
+    servo_pwm.ChangeDutyCycle(7.3)
 
 
 # Function to steer left
-def steerLeft():
-    servoPwm.ChangeDutyCycle(9.3)
+def steer_left():
+    servo_pwm.ChangeDutyCycle(9.3)
 
 
 # Function to steer right
-def steerRight():
-    servoPwm.ChangeDutyCycle(5.3)
+def steer_right():
+    servo_pwm.ChangeDutyCycle(5.3)
 
 
 # Function to get measurements from ultrasonic distance sensors
-def ultrasonicDistanceMeasurement():
+def ultrasonic_distance_measurement():
     # Initialising variables for ultrasonic distance measurement
-    pulseStartFront, pulseEndFront, pulseDurationFront = time.time(), time.time(), 0
-    pulseStartRight, pulseEndRight, pulseDurationRight = time.time(), time.time(), 0
-    pulseStartLeft, pulseEndLeft, pulseDurationLeft = time.time(), time.time(), 0
-    global distanceFrontMeasured, distanceRightMeasured, distanceLeftMeasured
-    
+    pulse_start_front, pulse_end_front, pulse_duration_front = time.time(), time.time(), 0
+    pulse_start_right, pulse_end_right, pulse_duration_right = time.time(), time.time(), 0
+    pulse_start_left, pulse_end_left, pulse_duration_left = time.time(), time.time(), 0
+    global distance_front_measured, distance_right_measured, distance_left_measured
+
     # Triggering ultrasonic distance sensors
-    GPIO.output(trigFront, GPIO.LOW)
-    GPIO.output(trigRight, GPIO.LOW)
-    GPIO.output(trigLeft, GPIO.LOW)
+    GPIO.output(trig_front, GPIO.LOW)
+    GPIO.output(trig_right, GPIO.LOW)
+    GPIO.output(trig_left, GPIO.LOW)
     time.sleep(0.02)
-    
+
     # Getting front distance
-    GPIO.output(trigFront, GPIO.HIGH)
+    GPIO.output(trig_front, GPIO.HIGH)
     time.sleep(0.00001)
-    GPIO.output(trigFront, GPIO.LOW)
-    while GPIO.input(echoFront) == 0:
-        pulseStartFront = time.time()
-    while GPIO.input(echoFront) == 1:
-        pulseEndFront = time.time()
-    pulseDurationFront = pulseEndFront - pulseStartFront
-    distanceFrontMeasured = pulseDurationFront * 17150
-    distanceFrontMeasured = round(distanceFrontMeasured, 2)
-    
+    GPIO.output(trig_front, GPIO.LOW)
+    while GPIO.input(echo_front) == 0:
+        pulse_start_front = time.time()
+    while GPIO.input(echo_front) == 1:
+        pulse_end_front = time.time()
+    pulse_duration_front = pulse_end_front - pulse_start_front
+    distance_front_measured = pulse_duration_front * 17150
+    distance_front_measured = round(distance_front_measured, 2)
+
     # Getting right distance
-    GPIO.output(trigRight, GPIO.HIGH)
+    GPIO.output(trig_right, GPIO.HIGH)
     time.sleep(0.00001)
-    GPIO.output(trigRight, GPIO.LOW)
-    while GPIO.input(echoRight) == 0:
-        pulseStartRight = time.time()
-    while GPIO.input(echoRight) == 1:
-        pulseEndRight = time.time()
-    pulseDurationRight = pulseEndRight - pulseStartRight
-    distanceRightMeasured = pulseDurationRight * 17150
-    distanceRightMeasured = round(distanceRightMeasured, 2)
-    
+    GPIO.output(trig_right, GPIO.LOW)
+    while GPIO.input(echo_right) == 0:
+        pulse_start_right = time.time()
+    while GPIO.input(echo_right) == 1:
+        pulse_end_right = time.time()
+    pulse_duration_right = pulse_end_right - pulse_start_right
+    distance_right_measured = pulse_duration_right * 17150
+    distance_right_measured = round(distance_right_measured, 2)
+
     # Getting left distance
-    GPIO.output(trigLeft, GPIO.HIGH)
+    GPIO.output(trig_left, GPIO.HIGH)
     time.sleep(0.00001)
-    GPIO.output(trigLeft, GPIO.LOW)
-    while GPIO.input(echoLeft) == 0:
-        pulseStartLeft = time.time()
-    while GPIO.input(echoLeft) == 1:
-        pulseEndLeft = time.time()
-    pulseDurationLeft = pulseEndLeft - pulseStartLeft
-    distanceLeftMeasured = pulseDurationLeft * 17150
-    distanceLeftMeasured = round(distanceLeftMeasured, 2)
+    GPIO.output(trig_left, GPIO.LOW)
+    while GPIO.input(echo_left) == 0:
+        pulse_start_left = time.time()
+    while GPIO.input(echo_left) == 1:
+        pulse_end_left = time.time()
+    pulse_duration_left = pulse_end_left - pulse_start_left
+    distance_left_measured = pulse_duration_left * 17150
+    distance_left_measured = round(distance_left_measured, 2)
 
 
 # Function to get the height and x-coordinate in the frame of the biggest object within the HSV limits
-def objData(frame, lower, upper, color):
+def obj_data(frame, lower, upper, color):
     x, w, h = 400, 0, 0
-    minArea = 600
+    min_area = 600
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
     mask = cv.inRange(hsv, lower, upper)
     _, mask1 = cv.threshold(mask, 254, 255, cv.THRESH_BINARY)
     contours, _ = cv.findContours(mask1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
     for contour in contours:
-        if cv.contourArea(contour) > minArea:
+        if cv.contourArea(contour) > min_area:
             x, y, w, h = cv.boundingRect(contour)
-            cv.rectangle(frame, (x, y), (x+w, y+h), color, 2)
-            minArea = cv.contourArea(contour)  
-    return (x + w/2), h
+            cv.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+            min_area = cv.contourArea(contour)
+    return (x + w / 2), h
 
 
 # Function to calculate the distance of an object in the camera frame
-def distanceCalculation(focalLength, knownHeight, objHeightInFrame):
-    global cameraAngle
-    distance = (knownHeight * focalLength) / objHeightInFrame
-    horizontalDistance = math.sqrt(distance**2 - 81**2)
-    return horizontalDistance
+def distance_calculation(focal_length, known_height, obj_height_in_frame):
+    distance = (known_height * focal_length) / obj_height_in_frame
+    horizontal_distance = math.sqrt(distance ** 2 - 81 ** 2)
+    return horizontal_distance
 
 
 stop()
-steerForward()
+steer_forward()
 time.sleep(0.1)
-servoPwm.ChangeDutyCycle(0)
+servo_pwm.ChangeDutyCycle(0)
 
 if __name__ == "__main__":
     while True:
         # Initialising variables
-        lastDistanceFront, lastDistanceRight, lastDistanceLeft = 0, 0, 0
-        distancesFront, distancesRight, distancesLeft = [], [], []
-        distanceFront, distanceRight, distanceLeft = 0, 0, 0
-        distanceFrontMeasured, distanceRightMeasured, distanceLeftMeasured = 0, 0, 0
-        cornerCounter = 0
-        distanceMeasurementIsUpToDate = False 
-        lastDistanceMeasurementTime, currentDistanceMeasurementTime = time.time(), time.time()
-        distanceRightChange, distanceLeftChange = 0, 0
-        steeringBlocked, steeringBlocked2 = False, False
-        measurementCounter = 0
-        isRunning = False
-        hasIncreased, hasDecreased = False, False
-        steeringDirection = ""
-        scriptStartTime = time.time()
-        hasCorrectedLeft, hasCorrectedRight = False, False
-        steeringEndTime = time.time()
-        distanceFrontChange = 0
-        stoppingEnabled, stoppingEnabledTime = False, time.time()
-        redObjX, greenObjX = 0, 0
-        distanceNearestObstacle = 0
-        nearestObstacleX = 400
-        nearestObstacleColor = ""
-        avoidingRedObstacle, avoidingGreenObstacle = False, False
-        avoidingStartTime = time.time()
-        avoidingDistance = 0
-        isObstacleRace = False
-        frameCounter = 0
-        justAvoidedObstacle, justAvoidedObstacle2 = False, False
-        avoidingEndTime = time.time()
-        avoidingDuration, avoidingDistance = 0, 0
-        avoidingColor = ""
-        avoidingAllowed = True
-        cornerDirection = ""
-        cornerAllowed = True
-        backwardTime = scriptStartTime
-        
-        # Initialising variables for ultrasonic distance measurement
-        pulseStartFront, pulseEndFront, pulseDurationFront = time.time(), time.time(), 0
-        pulseStartRight, pulseEndRight, pulseDurationRight = time.time(), time.time(), 0
-        pulseStartLeft, pulseEndLeft, pulseDurationLeft = time.time(), time.time(), 0
-        distanceFront, distanceRight, distanceLeft = 0, 0, 0
-        
+        last_distance_front, last_distance_right, last_distance_left = 0, 0, 0
+        distances_front, distances_right, distances_left = [], [], []
+        distance_front_measured, distance_right_measured, distance_left_measured = 0, 0, 0
+        corner_counter = 0
+        distance_measurement_is_up_to_date = False
+        last_distance_measurement_time, current_distance_measurement_time = time.time(), time.time()
+        distance_right_change, distance_left_change = 0, 0
+        steering_blocked, steering_blocked2 = False, False
+        measurement_counter = 0
+        is_running = False
+        has_increased, has_decreased = False, False
+        steering_direction = ""
+        script_start_time = time.time()
+        has_corrected_left, has_corrected_right = False, False
+        steering_end_time = time.time()
+        distance_front_change = 0
+        stopping_enabled, stopping_enabled_time = False, time.time()
+        red_obj_x, green_obj_x = 0, 0
+        distance_nearest_obstacle = 0
+        nearest_obstacle_x = 400
+        nearest_obstacle_color = ""
+        avoiding_red_obstacle, avoiding_green_obstacle = False, False
+        avoiding_start_time = time.time()
+        avoiding_distance = 0
+        is_obstacle_race = False
+        frame_counter = 0
+        just_avoided_obstacle, just_avoided_obstacle2 = False, False
+        avoiding_end_time = time.time()
+        avoiding_duration = 0
+        avoiding_color = ""
+        avoiding_allowed = True
+        corner_direction = ""
+        corner_allowed = True
+        backward_time = script_start_time
+        pulse_start_front, pulse_end_front, pulse_duration_front = time.time(), time.time(), 0
+        pulse_start_right, pulse_end_right, pulse_duration_right = time.time(), time.time(), 0
+        pulse_start_left, pulse_end_left, pulse_duration_left = time.time(), time.time(), 0
+        distance_front, distance_right, distance_left = 0, 0, 0
+        steering_start_time = time.time()
+        red_obj_height_in_frame, green_obj_height_in_frame = 0, 0
+        distance_red, distance_green = 0, 0
 
         while True:
             # Starting if button is pressed
-            if GPIO.input(buttonPin) == GPIO.HIGH:
-                isRunning = True
-                steerForward()
+            if GPIO.input(button_pin) == GPIO.HIGH:
+                is_running = True
+                steer_forward()
                 time.sleep(0.5)
                 forward(speed)
-                scriptStartTime = time.time()
+                script_start_time = time.time()
                 break
-        
 
-        while isRunning:
-            hasCorrectedLeft = False
-            hasCorrectedRight = False
-            
+        while is_running:
+            has_corrected_left = False
+            has_corrected_right = False
 
             # Stopping if button is pressed
-            if GPIO.input(buttonPin) == GPIO.HIGH and (time.time() - scriptStartTime) > 2:
-                isRunning = False
-                steerForward()
+            if GPIO.input(button_pin) == GPIO.HIGH and (time.time() - script_start_time) > 2:
+                is_running = False
+                steer_forward()
                 stop()
                 time.sleep(0.2)
-                servoPwm.ChangeDutyCycle(0)
+                servo_pwm.ChangeDutyCycle(0)
                 break
-            
 
             # Getting measurements from ultrasonic distance sensors
-            ultrasonicDistanceMeasurement()
-            
+            ultrasonic_distance_measurement()
+
             # Taking each three measurements from the ultrasonic distance sensors and forming the median of these
-            if distanceFrontMeasured > 0 and distanceFrontMeasured < 300:
-                distancesFront.append(distanceFrontMeasured)
-                distanceMeasurementIsUpToDate = False
-            if distanceRightMeasured > 0 and distanceRightMeasured < 300:
-                distancesRight.append(distanceRightMeasured)
-            if distanceLeftMeasured > 0 and distanceLeftMeasured < 300:
-                distancesLeft.append(distanceLeftMeasured)
-            if len(distancesFront) == 3:
-                distancesFront.sort()
-                lastDistanceFront = distanceFront
-                distanceFront = round(distancesFront[1], 2)
-                distancesFront = []
-                distanceMeasurementIsUpToDate = True
-                lastDistanceMeasurementTime = currentDistanceMeasurementTime
-                currentDistanceMeasurementTime = time.time()
-            if len(distancesRight) == 3:
-                distancesRight.sort()
-                lastDistanceRight = distanceRight
-                distanceRight = round(distancesRight[1], 2)
-                distancesRight = []
-            if len(distancesLeft) == 3:
-                distancesLeft.sort()
-                lastDistanceLeft = distanceLeft
-                distanceLeft = round(distancesLeft[1], 2)
-                distancesLeft = []
-            
+            if 0 < distance_front_measured < 300:
+                distances_front.append(distance_front_measured)
+                distance_measurement_is_up_to_date = False
+            if 0 < distance_right_measured < 300:
+                distances_right.append(distance_right_measured)
+            if 0 < distance_left_measured < 300:
+                distances_left.append(distance_left_measured)
+            if len(distances_front) == 3:
+                distances_front.sort()
+                last_distance_front = distance_front
+                distance_front = round(distances_front[1], 2)
+                distances_front = []
+                distance_measurement_is_up_to_date = True
+                last_distance_measurement_time = current_distance_measurement_time
+                current_distance_measurement_time = time.time()
+            if len(distances_right) == 3:
+                distances_right.sort()
+                last_distance_right = distance_right
+                distance_right = round(distances_right[1], 2)
+                distances_right = []
+            if len(distances_left) == 3:
+                distances_left.sort()
+                last_distance_left = distance_left
+                distance_left = round(distances_left[1], 2)
+                distances_left = []
+
             # Waiting until a new median of the measurements of the ultrasonic distance sensors is formed before allowing steering again
-            if measurementCounter > 0:
-                measurementCounter += 1
-                if measurementCounter >= 4 and (time.time() - steeringStartTime) >= 0.5:
-                    measurementCounter = 0
-                    steeringBlocked2 = False
-            
+            if measurement_counter > 0:
+                measurement_counter += 1
+                if measurement_counter >= 4 and (time.time() - steering_start_time) >= 0.5:
+                    measurement_counter = 0
+                    steering_blocked2 = False
 
             # Reading camera image
             success, frame = cap.read()
             if not success:
                 print("Can't receive frame. Exiting ...")
                 break
-            
+
             # Cropping camera image
             frame = frame[80:, 0:]
-            
+
             # Calculating the distances to the nearest red and the nearest green obstacle
-            redObjX, redObjHeightInFrame = objData(frame, lowerRed, upperRed, (0,0,255))
-            if redObjHeightInFrame != 0:
-                distanceRed = distanceCalculation(focalLength, knownHeight, redObjHeightInFrame)
-                if not isObstacleRace:
-                    isObstacleRace = True
+            red_obj_x, red_obj_height_in_frame = obj_data(frame, lower_red, upper_red, (0, 0, 255))
+            if red_obj_height_in_frame != 0:
+                distance_red = distance_calculation(focal_length, known_height, red_obj_height_in_frame)
+                if not is_obstacle_race:
+                    is_obstacle_race = True
                     print("Detected obstacle race")
-                cv.putText(frame, f"distance: {round((distanceRed/10), 2)} cm", (35, 40), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
-            else: 
-                distanceRed = 0
-            greenObjX, greenObjHeightInFrame = objData(frame, lowerGreen, upperGreen, (0,255,0))
-            if greenObjHeightInFrame != 0:
-                distanceGreen = distanceCalculation(focalLength, knownHeight, greenObjHeightInFrame)
-                if not isObstacleRace:
-                    isObstacleRace = True
-                    print("Detected obstacle race")
-                cv.putText(frame, f"distance: {round((distanceGreen/10), 2)} cm", (35, 80), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
+                cv.putText(frame, f"distance: {round((distance_red / 10), 2)} cm", (35, 40), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             else:
-                distanceGreen = 0
-                
+                distance_red = 0
+            green_obj_x, green_obj_height_in_frame = obj_data(frame, lower_green, upper_green, (0, 255, 0))
+            if green_obj_height_in_frame != 0:
+                distance_green = distance_calculation(focal_length, known_height, green_obj_height_in_frame)
+                if not is_obstacle_race:
+                    is_obstacle_race = True
+                    print("Detected obstacle race")
+                cv.putText(frame, f"distance: {round((distance_green / 10), 2)} cm", (35, 80), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            else:
+                distance_green = 0
+
             # Determining which obstacle is the nearest and its x-coordinate in the frame
-            if distanceRed == 0 and distanceGreen == 0:
-                distanceNearestObstacle = 0
-                nearestObstacleX = 400
-                nearestObstacleColor = ""
-            elif distanceRed != 0 and distanceGreen != 0 and distanceRed < distanceGreen:
-                distanceNearestObstacle = distanceRed
-                nearestObstacleX = redObjX
-                nearestObstacleColor = "red"
-            elif distanceRed != 0 and distanceGreen != 0 and distanceGreen <= distanceRed:
-                distanceNearestObstacle = distanceGreen
-                nearestObstacleX = greenObjX
-                nearestObstacleColor = "green"
-            elif distanceRed == 0:
-                distanceNearestObstacle = distanceGreen
-                nearestObstacleX = greenObjX
-                nearestObstacleColor = "green"
-            else: 
-                distanceNearestObstacle = distanceRed
-                nearestObstacleX = redObjX
-                nearestObstacleColor = "red"
-            
+            if distance_red == 0 and distance_green == 0:
+                distance_nearest_obstacle = 0
+                nearest_obstacle_x = 400
+                nearest_obstacle_color = ""
+            elif distance_red != 0 and distance_green != 0 and distance_red < distance_green:
+                distance_nearest_obstacle = distance_red
+                nearest_obstacle_x = red_obj_x
+                nearest_obstacle_color = "red"
+            elif distance_red != 0 and distance_green != 0 and distance_green <= distance_red:
+                distance_nearest_obstacle = distance_green
+                nearest_obstacle_x = green_obj_x
+                nearest_obstacle_color = "green"
+            elif distance_red == 0:
+                distance_nearest_obstacle = distance_green
+                nearest_obstacle_x = green_obj_x
+                nearest_obstacle_color = "green"
+            else:
+                distance_nearest_obstacle = distance_red
+                nearest_obstacle_x = red_obj_x
+                nearest_obstacle_color = "red"
+
             # Displaying frame (currently not used)
             # cv.imshow("Frame", frame)
             if cv.waitKey(1) & 0xFF == 27:
                 break
-            
 
             # Eventually resetting variables to allow certain actions
-            if justAvoidedObstacle and not justAvoidedObstacle2:
-                justAvoidedObstacle = False
-            if not justAvoidedObstacle and justAvoidedObstacle2:
-                justAvoidedObstacle2 = False
-            
-            if (time.time() - avoidingEndTime) > 1 or nearestObstacleColor != avoidingColor or distanceNearestObstacle > avoidingDistance and not avoidingAllowed:
-                avoidingAllowed = True
-            
+            if just_avoided_obstacle and not just_avoided_obstacle2:
+                just_avoided_obstacle = False
+            if not just_avoided_obstacle and just_avoided_obstacle2:
+                just_avoided_obstacle2 = False
+
+            if ((time.time() - avoiding_end_time) > 1 or nearest_obstacle_color != avoiding_color or distance_nearest_obstacle > avoiding_distance) and not avoiding_allowed:
+                avoiding_allowed = True
 
             # Driving around obstacles
-            if distanceRed != 0 and nearestObstacleColor == "red" and distanceRight > 25 and not steeringBlocked and avoidingAllowed and redObjX > 250:
-                avoidingDuration = 0.4
+            if distance_red != 0 and nearest_obstacle_color == "red" and distance_right > 25 and not steering_blocked and avoiding_allowed and red_obj_x > 250:
+                avoiding_duration = 0.4
                 print("Now correcting right (red obstacle)")
-                steerRight()
-                time.sleep(avoidingDuration)
-                steerForward()
-                time.sleep(avoidingDuration)
-                steerLeft()
-                time.sleep(avoidingDuration / 1.3)
-                steerForward()
-                justAvoidedObstacle = True
-                justAvoidedObstacle2 = True
-                avoidingEndTime = time.time()
-                avoidingDistance = distanceRed
-                avoidingColor = "red"
-            if distanceGreen != 0 and nearestObstacleColor == "green" and distanceLeft > 25 and not steeringBlocked and avoidingAllowed and greenObjX < 550:
-                avoidingDuration = 0.4
+                steer_right()
+                time.sleep(avoiding_duration)
+                steer_forward()
+                time.sleep(avoiding_duration)
+                steer_left()
+                time.sleep(avoiding_duration / 1.3)
+                steer_forward()
+                just_avoided_obstacle = True
+                just_avoided_obstacle2 = True
+                avoiding_end_time = time.time()
+                avoiding_distance = distance_red
+                avoiding_color = "red"
+            if distance_green != 0 and nearest_obstacle_color == "green" and distance_left > 25 and not steering_blocked and avoiding_allowed and green_obj_x < 550:
+                avoiding_duration = 0.4
                 print("Now correcting left (green obstacle)")
-                steerLeft()
-                time.sleep(avoidingDuration)
-                steerForward()
-                time.sleep(avoidingDuration)
-                steerRight()
-                time.sleep(avoidingDuration / 1.3)
-                steerForward()
-                justAvoidedObstacle = True
-                justAvoidedObstacle2 = True
-                avoidingEndTime = time.time()
-                avoidingDistance = distanceGreen
-                avoidingColor = "green"
+                steer_left()
+                time.sleep(avoiding_duration)
+                steer_forward()
+                time.sleep(avoiding_duration)
+                steer_right()
+                time.sleep(avoiding_duration / 1.3)
+                steer_forward()
+                just_avoided_obstacle = True
+                just_avoided_obstacle2 = True
+                avoiding_end_time = time.time()
+                avoiding_distance = distance_green
+                avoiding_color = "green"
 
-            if distanceGreen != 0 and nearestObstacleColor == "green" and distanceGreen < 300 and greenObjX < 550:
-                steerForward()
-                backward()
+            if (distance_green != 0 and nearest_obstacle_color == "green" and distance_green < 300 and green_obj_x < 600) or (distance_red != 0 and nearest_obstacle_color == "red" and distance_red < 300 and red_obj_x > 200):
+                steer_forward()
+                backward(speed)
                 time.sleep(0.5)
-                forward()
-                if steeringBlocked:
-                    steeringEndTime = time.time()
-                    steerForward()
+                forward(speed)
+                if steering_blocked:
+                    steering_end_time = time.time()
+                    steer_forward()
                     print("Steering stopped")
-                    hasIncreased = False
-                    hasDecreased = False
-                    steeringBlocked = False
-                    steeringBlocked2 = False
-                    steeringDirection = "forward"
-                    cornerCounter += 1
-                backwardTime = time.time()
-            if distanceRed != 0 and nearestObstacleColor == "red" and distanceRed < 300 and redObjX < 550:
-                steerForward()
-                backward()
-                time.sleep(0.5)
-                forward()
-                if steeringBlocked:
-                    steeringEndTime = time.time()
-                    steerForward()
-                    print("Steering stopped")
-                    hasIncreased = False
-                    hasDecreased = False
-                    steeringBlocked = False
-                    steeringBlocked2 = False
-                    steeringDirection = "forward"
-                    cornerCounter += 1
-                backwardTime = time.time()
-            
-            if cornerAllowed and (time.time() - backwardTime) < 1.5 and backwardTime != scriptStartTime:
-                cornerAllowed = False
-            if not cornerAllowed and (time.time() - backwardTime) < 1.5:
-                cornerAllowed = True
-            
+                    has_increased = False
+                    has_decreased = False
+                    steering_blocked = False
+                    steering_blocked2 = False
+                    steering_direction = "forward"
+                    corner_counter += 1
+                backward_time = time.time()
+
+            if corner_allowed and (time.time() - backward_time) < 1.5 and backward_time != script_start_time:
+                corner_allowed = False
+            if not corner_allowed and (time.time() - backward_time) < 1.5:
+                corner_allowed = True
 
             # Making a 90°-turn in the corners
             # Starting corner turn
-            if cornerAllowed and distanceLeft > 130 and distanceFront < 80 and not steeringBlocked and not steeringBlocked2 and cornerCounter < 12 and (time.time() - steeringEndTime) >= 1.5 and cornerDirection != "right":
-                steeringBlocked = True
-                steeringBlocked2 = True
+            if corner_allowed and distance_left > 130 and distance_front < 80 and not steering_blocked and not steering_blocked2 and corner_counter < 12 and (time.time() - steering_end_time) >= 1.5 and corner_direction != "right":
+                steering_blocked = True
+                steering_blocked2 = True
                 print("\nNow steering left\n")
-                steerLeft()
-                steeringDirection = "left"
-                measurementCounter = 1
-                steeringStartTime = time.time()
-                if cornerDirection == "":
-                    cornerDirection = "left"
-            if cornerAllowed and distanceRight > 130 and distanceFront < 80 and not steeringBlocked and not steeringBlocked2 and cornerCounter < 12 and (time.time() - steeringEndTime) >= 1.5 and cornerDirection != "left":
-                steeringBlocked = True
-                steeringBlocked2 = True
+                steer_left()
+                steering_direction = "left"
+                measurement_counter = 1
+                steering_start_time = time.time()
+                if corner_direction == "":
+                    corner_direction = "left"
+            if corner_allowed and distance_right > 130 and distance_front < 80 and not steering_blocked and not steering_blocked2 and corner_counter < 12 and (time.time() - steering_end_time) >= 1.5 and corner_direction != "left":
+                steering_blocked = True
+                steering_blocked2 = True
                 print("\nNow steering right\n")
-                steerRight()
-                steeringDirection = "right"
-                measurementCounter = 1
-                steeringStartTime = time.time()
-                if cornerDirection == "":
-                    cornerDirection = "right"
-                
-            if steeringBlocked and not hasIncreased and round(lastDistanceFront) < (round(distanceFront) - 25):
-                hasIncreased = True
-            
-            if steeringBlocked and hasIncreased and round(lastDistanceFront) > (round(distanceFront) - 10):
-                hasDecreased = True
-            
-            # Stopping corner turn
-            if steeringBlocked and hasIncreased and hasDecreased and not steeringBlocked2:
-                steeringEndTime = time.time()
-                if steeringDirection == "left":
-                    steerForward()
-                    print("Steering stopped")
-                    hasIncreased = False
-                    hasDecreased = False
-                    steeringBlocked = False
-                    steeringDirection = "forward"
-                    cornerCounter += 1
-                    if cornerCounter == 4:
-                        forward(65)
-                if steeringDirection == "right":
-                    steerForward()
-                    print("Steering stopped")
-                    hasIncreased = False
-                    hasDecreased = False
-                    steeringBlocked = False
-                    steeringDirection = "forward"
-                    cornerCounter += 1
-                    if cornerCounter == 4:
-                        forward(65)
-            if isObstacleRace and steeringBlocked and not steeringBlocked2:
-                if distanceNearestObstacle != 0 and nearestObstacleX < 550 and nearestObstacleX > 250:
-                    steeringEndTime = time.time()
-                    steerForward()
-                    print("Steering stopped")
-                    hasIncreased = False
-                    hasDecreased = False
-                    steeringBlocked = False
-                    steeringDirection = "forward"
-                    cornerCounter += 1
-                
+                steer_right()
+                steering_direction = "right"
+                measurement_counter = 1
+                steering_start_time = time.time()
+                if corner_direction == "":
+                    corner_direction = "right"
 
-            # Calculating the change of distanceRight and distanceLeft per second
-            if (currentDistanceMeasurementTime - lastDistanceMeasurementTime) != 0 and distanceMeasurementIsUpToDate:
-                distanceRightChange = (distanceRight - lastDistanceRight) / (currentDistanceMeasurementTime - lastDistanceMeasurementTime)
-                distanceLeftChange = (distanceLeft - lastDistanceLeft) / (currentDistanceMeasurementTime - lastDistanceMeasurementTime)
-            if abs(distanceRightChange) > 60:
-                distanceRightChange = 0
-            if abs(distanceLeftChange) > 60:
-                distanceLeftChange = 0
-                
-            # Calculating the change of distanceFront per second
-            if (currentDistanceMeasurementTime - lastDistanceMeasurementTime) != 0 and distanceMeasurementIsUpToDate:
-                distanceFrontChange = (distanceFront - lastDistanceFront) / (currentDistanceMeasurementTime - lastDistanceMeasurementTime)
-            
+            if steering_blocked and not has_increased and round(last_distance_front) < (round(distance_front) - 25):
+                has_increased = True
+
+            if steering_blocked and has_increased and round(last_distance_front) > (round(distance_front) - 10):
+                has_decreased = True
+
+            # Stopping corner turn
+            if steering_blocked and has_increased and has_decreased and not steering_blocked2:
+                steering_end_time = time.time()
+                if steering_direction == "left":
+                    steer_forward()
+                    print("Steering stopped")
+                    has_increased = False
+                    has_decreased = False
+                    steering_blocked = False
+                    steering_direction = "forward"
+                    corner_counter += 1
+                    if corner_counter == 4:
+                        forward(65)
+                if steering_direction == "right":
+                    steer_forward()
+                    print("Steering stopped")
+                    has_increased = False
+                    has_decreased = False
+                    steering_blocked = False
+                    steering_direction = "forward"
+                    corner_counter += 1
+                    if corner_counter == 4:
+                        forward(65)
+            if is_obstacle_race and steering_blocked and not steering_blocked2:
+                if distance_nearest_obstacle != 0 and 550 > nearest_obstacle_x > 250:
+                    steering_end_time = time.time()
+                    steer_forward()
+                    print("Steering stopped")
+                    has_increased = False
+                    has_decreased = False
+                    steering_blocked = False
+                    steering_direction = "forward"
+                    corner_counter += 1
+
+            # Calculating the change of distance_front, distance_right and distance_left per second
+            if (current_distance_measurement_time - last_distance_measurement_time) != 0 and distance_measurement_is_up_to_date:
+                distance_front_change = (distance_front - last_distance_front) / (current_distance_measurement_time - last_distance_measurement_time)
+                distance_right_change = (distance_right - last_distance_right) / (current_distance_measurement_time - last_distance_measurement_time)
+                distance_left_change = (distance_left - last_distance_left) / (current_distance_measurement_time - last_distance_measurement_time)
+            if abs(distance_right_change) > 60:
+                distance_right_change = 0
+            if abs(distance_left_change) > 60:
+                distance_left_change = 0
+
             # Preventing getting too close to a wall
-            if (distanceLeft + distanceRight) < 110:
+            if (distance_left + distance_right) < 110:
                 # Correcting if the distance to the sides gets too small
-                if (distanceRight < 20 and distanceLeft > 35 and (round(lastDistanceRight) > round(distanceRight) or isObstacleRace) and distanceMeasurementIsUpToDate and not steeringBlocked):
-                    steerLeft()
-                    print("Now correcting left (distanceRight too small)")
-                    hasCorrectedLeft = True
+                if distance_right < 20 and distance_left > 35 and distance_measurement_is_up_to_date and not steering_blocked and (round(last_distance_right) > round(distance_right) or is_obstacle_race):
+                    steer_left()
+                    print("Now correcting left (distance_right too small)")
+                    has_corrected_left = True
                     time.sleep(0.15)
-                    steerForward()
-                if (distanceLeft < 20 and distanceRight > 35 and (round(lastDistanceLeft) > round(distanceLeft) or isObstacleRace) and distanceMeasurementIsUpToDate and not steeringBlocked):
-                    steerRight()
-                    print("Now correcting right (distanceLeft too small)")
-                    hasCorrectedRight = True
+                    steer_forward()
+                if distance_left < 20 and distance_right > 35 and distance_measurement_is_up_to_date and not steering_blocked and (round(last_distance_left) > round(distance_left) or is_obstacle_race):
+                    steer_right()
+                    print("Now correcting right (distance_left too small)")
+                    has_corrected_right = True
                     time.sleep(0.15)
-                    steerForward()
-                    
+                    steer_forward()
+
                 # Correcting if the distance to the sides changes too fast
-                if distanceRightChange <= -3 and distanceMeasurementIsUpToDate and not steeringBlocked and distanceLeftChange >= 1.5 and distanceLeft >= distanceRight and not justAvoidedObstacle:
-                    steerLeft()
+                if distance_right_change <= -3 and distance_measurement_is_up_to_date and not steering_blocked and distance_left_change >= 1.5 and distance_left >= distance_right and not just_avoided_obstacle:
+                    steer_left()
                     print("Now correcting left (distanceChange)")
-                    hasCorrectedLeft = True
+                    has_corrected_left = True
                     time.sleep(0.1)
-                    steerForward()
-                if ‚distanceLeftChange <= -3 and distanceMeasurementIsUpToDate and not steeringBlocked and distanceRightChange >= 1.5 and distanceRight >= distanceLeft and not justAvoidedObstacle:
-                    steerRight()
+                    steer_forward()
+                if distance_left_change <= -3 and distance_measurement_is_up_to_date and not steering_blocked and distance_right_change >= 1.5 and distance_right >= distance_left and not just_avoided_obstacle:
+                    steer_right()
                     print("Now correcting right (distanceChange)")
-                    hasCorrectedRight = True
+                    has_corrected_right = True
                     time.sleep(0.1)
-                    steerForward()
-                    
+                    steer_forward()
+
                 # Correcting if the distance to the front gets to small
-                if distanceFront < 25 and distanceFront != 0 and not steeringBlocked and distanceMeasurementIsUpToDate and not isObstacleRace:
-                    if distanceLeft > distanceRight:
-                        steerLeft()
-                        print("Now correcting left (distanceFront too small)")
-                        hasCorrectedLeft = True
+                if distance_front < 25 and distance_front != 0 and not steering_blocked and distance_measurement_is_up_to_date and not is_obstacle_race:
+                    if distance_left > distance_right:
+                        steer_left()
+                        print("Now correcting left (distance_front too small)")
+                        has_corrected_left = True
                         time.sleep(0.15)
-                        steerForward()
+                        steer_forward()
                     else:
-                        steerRight()
-                        print("Now correcting right (distanceFront too small)")
-                        hasCorrectedRight = True
+                        steer_right()
+                        print("Now correcting right (distance_front too small)")
+                        has_corrected_right = True
                         time.sleep(0.15)
-                        steerForward()
-            
+                        steer_forward()
 
             # Stopping after three rounds
-            if cornerCounter >= 12:
-                if distanceFront > 150:
-                    stoppingEnabled = True
-                    stoppingEnabledTime = time.time()
-                if stoppingEnabled and distanceFront < 150 and (time.time() - stoppingEnabledTime) >= 1.5:
+            if corner_counter >= 12:
+                if distance_front > 150:
+                    stopping_enabled = True
+                    stopping_enabled_time = time.time()
+                if stopping_enabled and distance_front < 150 and (time.time() - stopping_enabled_time) >= 1.5:
                     stop()
-                    steerForward()
+                    steer_forward()
                     time.sleep(0.25)
-                    servoPwm.ChangeDutyCycle(0)
-                    isRunning = False
+                    servo_pwm.ChangeDutyCycle(0)
+                    is_running = False
                     print("\nDone!\n")
-
 
 cap.release()
 cv.destroyAllWindows()
