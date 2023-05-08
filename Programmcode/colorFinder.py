@@ -30,22 +30,22 @@ while True:
         break
 
     # Converting frame to HSV color space
-    frameHsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+    frame_hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
 
     # Getting trackbar positions of the HSV window
-    hMin = cv.getTrackbarPos("H Min", "HSV")
-    hMax = cv.getTrackbarPos("H Max", "HSV")
-    sMin = cv.getTrackbarPos("S Min", "HSV")
-    sMax = cv.getTrackbarPos("S Max", "HSV")
-    vMin = cv.getTrackbarPos("V Min", "HSV")
-    vMax = cv.getTrackbarPos("V Max", "HSV")
+    h_min = cv.getTrackbarPos("H Min", "HSV")
+    h_max = cv.getTrackbarPos("H Max", "HSV")
+    s_min = cv.getTrackbarPos("S Min", "HSV")
+    s_max = cv.getTrackbarPos("S Max", "HSV")
+    v_min = cv.getTrackbarPos("V Min", "HSV")
+    v_max = cv.getTrackbarPos("V Max", "HSV")
 
     # Creating arrays with the lower and upper HSV limits
-    lower = np.array([hMin, sMin, vMin])
-    upper = np.array([hMax, sMax, vMax])
+    lower = np.array([h_min, s_min, v_min])
+    upper = np.array([h_max, s_max, v_max])
 
     # Filtering out the areas within the HSV limits
-    mask = cv.inRange(frameHsv, lower, upper)
+    mask = cv.inRange(frame_hsv, lower, upper)
     result = cv.bitwise_and(frame, frame, mask=mask)
 
     # Displaying the mask and result
