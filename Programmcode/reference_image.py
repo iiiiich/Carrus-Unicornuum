@@ -21,6 +21,6 @@ while True:
         print("pressed a")
         frame = cv.imwrite("/home/pi/Desktop/referenceImage.png", frame)
         break
-    
+
 cap.release()
 cv.destroyAllWindows()
