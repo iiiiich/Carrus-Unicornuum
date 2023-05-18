@@ -9,6 +9,7 @@ World Robot Olympiad 2023 Future Engineers
 - Im Ordner `Technische Zeichnungen` befinden sich technische Zeichnungen von 3D-gedruckten Komponenten des Roboterautos.
 - Im Ordner `Video` befinden sich zwei Links zu YouTube-Videos, die den Roboter bei der autonomen Fahrt sowohl beim Eröffnungs- als auch beim Hindernisrennen zeigen.
 
+
 ## Hardware
 ### Motorisierung
 Der Antrieb des Roboterautos geschieht durch einen DC-Motor. Dieser ist über ein Getriebe mit der Hinterachse und somit mit den Rädern verbunden. Die Lenkung geschieht unabhängig vom Antrieb mit Hilfe eines Servo-Motors des Typs HS-81MG und läuft über die Vorderachse. Alle Motoren sind mit einem Motortreiber L298N verbunden. Dieser regelt die Stromversorgung der Motoren.
@@ -23,7 +24,7 @@ Das Roboter-Auto verfügt neben einer Kamera mit Weitwinkellinse auch über 3 Ul
 ## Software
 ### Eröffnungsrennen
 #### Kurven
-![Flussdiagramm zum Kurvenfahren](https://user-images.githubusercontent.com/128396963/236560181-bcf6c7e0-176b-4ac8-8dcf-6b0db0ab8153.jpeg)
+![Flussdiagramm zum Kurvenfahren](https://github.com/iiiiich/Carrus-Unicornuum/assets/128396963/cc4d4d2d-dada-4c40-b822-a638dc890044)
 #### Korrekturen
 ![Flussdiagramm zum Korrigieren](https://github.com/iiiiich/Carrus-Unicornuum/assets/128396963/df0b16e8-3673-497b-8bff-4ec701958d3b)
 
