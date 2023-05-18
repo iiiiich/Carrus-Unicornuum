@@ -25,7 +25,7 @@ Das Roboter-Auto verfügt neben einer Kamera mit Weitwinkellinse auch über 3 Ul
 #### Kurven
 ![Flussdiagramm zum Kurvenfahren](https://user-images.githubusercontent.com/128396963/236560181-bcf6c7e0-176b-4ac8-8dcf-6b0db0ab8153.jpeg)
 #### Korrekturen
-![Flussdiagramm zum Korrigieren](https://user-images.githubusercontent.com/128396963/236562212-91d419c3-25d5-4b6d-8efb-cccdcb9835c8.jpeg)
+![Flussdiagramm zum Korrigieren](https://github.com/iiiiich/Carrus-Unicornuum/assets/128396963/df0b16e8-3673-497b-8bff-4ec701958d3b)
 
 ### Hindernisrennen
 ![Flussdiagramm zur Hindernisumfahrung](https://github.com/iiiiich/Carrus-Unicornuum/assets/128396963/85abef02-4d8c-4d84-8352-cbd545168401)
