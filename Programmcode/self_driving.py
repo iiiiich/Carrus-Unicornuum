@@ -11,10 +11,10 @@ GPIO.setwarnings(False)
 speed = 65
 
 # HSV limits for color detection
-lower_red = np.array([0, 186, 80])
-upper_red = np.array([12, 255, 235])
-lower_green = np.array([45, 112, 60])
-upper_green = np.array([77, 255, 241])
+lower_red = np.array([3, 155, 90])
+upper_red = np.array([9, 255, 255])
+lower_green = np.array([60, 147, 62])
+upper_green = np.array([80, 255, 169])
 
 # Variables for camera distance calculation
 known_height = 100
@@ -339,30 +339,40 @@ if __name__ == "__main__":
                 avoiding_allowed = True
 
             # Driving around obstacles
-            if distance_red != 0 and nearest_obstacle_color == "red" and distance_right > 25 and not steering_blocked and avoiding_allowed and red_obj_x > 250:
-                avoiding_duration = 0.4
+            if distance_red != 0 and nearest_obstacle_color == "red" and distance_right > 25 and not steering_blocked and avoiding_allowed and red_obj_x > 250 and distance_red < 500:
+                avoiding_duration = 0.6
                 print("Now correcting right (red obstacle)")
+                steer_forward()
+                backward(speed)
+                time.sleep(0.7)
+                forward(speed)
+                time.sleep(0.3)
                 steer_right()
                 time.sleep(avoiding_duration)
                 steer_forward()
                 time.sleep(avoiding_duration)
                 steer_left()
-                time.sleep(avoiding_duration / 1.3)
+                time.sleep(avoiding_duration / 1.6)
                 steer_forward()
                 just_avoided_obstacle = True
                 just_avoided_obstacle2 = True
                 avoiding_end_time = time.time()
                 avoiding_distance = distance_red
                 avoiding_color = "red"
-            if distance_green != 0 and nearest_obstacle_color == "green" and distance_left > 25 and not steering_blocked and avoiding_allowed and green_obj_x < 550:
-                avoiding_duration = 0.4
+            if distance_green != 0 and nearest_obstacle_color == "green" and distance_left > 25 and not steering_blocked and avoiding_allowed and green_obj_x < 550 and distance_green < 500:
+                avoiding_duration = 0.6
                 print("Now correcting left (green obstacle)")
+                steer_forward()
+                backward(speed)
+                time.sleep(0.7)
+                forward(speed)
+                time.sleep(0.3)
                 steer_left()
                 time.sleep(avoiding_duration)
                 steer_forward()
                 time.sleep(avoiding_duration)
                 steer_right()
-                time.sleep(avoiding_duration / 1.3)
+                time.sleep(avoiding_duration / 1.6)
                 steer_forward()
                 just_avoided_obstacle = True
                 just_avoided_obstacle2 = True
@@ -515,7 +525,7 @@ if __name__ == "__main__":
                 if distance_front > 150:
                     stopping_enabled = True
                     stopping_enabled_time = time.time()
-                if stopping_enabled and distance_front < 150 and (time.time() - stopping_enabled_time) >= 1.5:
+                if stopping_enabled and distance_front < 165 and (time.time() - stopping_enabled_time) >= 1.2:
                     stop()
                     steer_forward()
                     time.sleep(0.25)
