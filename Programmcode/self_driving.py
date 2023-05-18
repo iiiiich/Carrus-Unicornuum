@@ -340,11 +340,11 @@ if __name__ == "__main__":
 
             # Driving around obstacles
             if distance_red != 0 and nearest_obstacle_color == "red" and distance_right > 25 and not steering_blocked and avoiding_allowed and red_obj_x > 250 and distance_red < 500:
-                avoiding_duration = 0.6
+                avoiding_duration = 0.65
                 print("Now correcting right (red obstacle)")
                 steer_forward()
                 backward(speed)
-                time.sleep(0.7)
+                time.sleep(0.8)
                 forward(speed)
                 time.sleep(0.3)
                 steer_right()
@@ -352,7 +352,7 @@ if __name__ == "__main__":
                 steer_forward()
                 time.sleep(avoiding_duration)
                 steer_left()
-                time.sleep(avoiding_duration / 1.6)
+                time.sleep(avoiding_duration / 2)
                 steer_forward()
                 just_avoided_obstacle = True
                 just_avoided_obstacle2 = True
@@ -360,11 +360,11 @@ if __name__ == "__main__":
                 avoiding_distance = distance_red
                 avoiding_color = "red"
             if distance_green != 0 and nearest_obstacle_color == "green" and distance_left > 25 and not steering_blocked and avoiding_allowed and green_obj_x < 550 and distance_green < 500:
-                avoiding_duration = 0.6
+                avoiding_duration = 0.65
                 print("Now correcting left (green obstacle)")
                 steer_forward()
                 backward(speed)
-                time.sleep(0.7)
+                time.sleep(0.8)
                 forward(speed)
                 time.sleep(0.3)
                 steer_left()
@@ -372,7 +372,7 @@ if __name__ == "__main__":
                 steer_forward()
                 time.sleep(avoiding_duration)
                 steer_right()
-                time.sleep(avoiding_duration / 1.6)
+                time.sleep(avoiding_duration / 2)
                 steer_forward()
                 just_avoided_obstacle = True
                 just_avoided_obstacle2 = True
