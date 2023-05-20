@@ -5,16 +5,22 @@ import RPi.GPIO as GPIO
 import cv2 as cv
 import numpy as np
 
+import csv
+import pygame
+
+pygame.init()
+screen = pygame.display.set_mode((500, 400))
+
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
 
-speed = 65
+speed = 60
 
 # HSV limits for color detection
-lower_red = np.array([3, 155, 90])
-upper_red = np.array([9, 255, 255])
-lower_green = np.array([60, 147, 62])
-upper_green = np.array([80, 255, 169])
+lower_red = np.array([3, 185, 90])
+upper_red = np.array([12, 255, 255])
+lower_green = np.array([60, 140, 45])
+upper_green = np.array([80, 255, 160])
 
 # Variables for camera distance calculation
 known_height = 100
@@ -53,6 +59,8 @@ if not cap.isOpened():
     print("Cannot open camera")
     exit()
 
+video_writer = cv.VideoWriter("video.mp4", cv.VideoWriter_fourcc(*"DIVX"), 10, (800, 400))
+
 
 # Function to move forward
 def forward(x):
@@ -76,17 +84,31 @@ def stop():
 
 # Function to steer forward
 def steer_forward():
-    servo_pwm.ChangeDutyCycle(7.3)
+    global steering_direction
+    
+    if steering_direction == "left":
+        servo_pwm.ChangeDutyCycle(7.2)
+    elif steering_direction == "right":
+        servo_pwm.ChangeDutyCycle(7.4)
+    else:
+        servo_pwm.ChangeDutyCycle(7.3)
+    steering_direction = "forward"
 
 
 # Function to steer left
 def steer_left():
+    global steering_direction
+    
     servo_pwm.ChangeDutyCycle(9.3)
+    steering_direction = "left"
 
 
 # Function to steer right
 def steer_right():
+    global steering_direction
+    
     servo_pwm.ChangeDutyCycle(5.3)
+    steering_direction = "right"
 
 
 # Function to get measurements from ultrasonic distance sensors
@@ -107,10 +129,17 @@ def ultrasonic_distance_measurement():
     GPIO.output(trig_front, GPIO.HIGH)
     time.sleep(0.00001)
     GPIO.output(trig_front, GPIO.LOW)
+    trig_start_time = time.time()
     while GPIO.input(echo_front) == 0:
         pulse_start_front = time.time()
+        if (time.time() - trig_start_time) >= 0.2:
+            pulse_start_front = -1
+            break
     while GPIO.input(echo_front) == 1:
         pulse_end_front = time.time()
+        if (time.time() - trig_start_time) >= 0.2:
+            pulse_end_front = -2
+            break
     pulse_duration_front = pulse_end_front - pulse_start_front
     distance_front_measured = pulse_duration_front * 17150
     distance_front_measured = round(distance_front_measured, 2)
@@ -119,10 +148,17 @@ def ultrasonic_distance_measurement():
     GPIO.output(trig_right, GPIO.HIGH)
     time.sleep(0.00001)
     GPIO.output(trig_right, GPIO.LOW)
+    trig_start_time = time.time()
     while GPIO.input(echo_right) == 0:
         pulse_start_right = time.time()
+        if (time.time() - trig_start_time) >= 0.2:
+            pulse_start_right = -1
+            break
     while GPIO.input(echo_right) == 1:
         pulse_end_right = time.time()
+        if (time.time() - trig_start_time) >= 0.2:
+            pulse_end_right = -2
+            break
     pulse_duration_right = pulse_end_right - pulse_start_right
     distance_right_measured = pulse_duration_right * 17150
     distance_right_measured = round(distance_right_measured, 2)
@@ -131,10 +167,17 @@ def ultrasonic_distance_measurement():
     GPIO.output(trig_left, GPIO.HIGH)
     time.sleep(0.00001)
     GPIO.output(trig_left, GPIO.LOW)
+    trig_start_time = time.time()
     while GPIO.input(echo_left) == 0:
         pulse_start_left = time.time()
+        if (time.time() - trig_start_time) >= 0.2:
+            pulse_start_left = -1
+            break
     while GPIO.input(echo_left) == 1:
         pulse_end_left = time.time()
+        if (time.time() - trig_start_time) >= 0.2:
+            pulse_end_left = -2
+            break
     pulse_duration_left = pulse_end_left - pulse_start_left
     distance_left_measured = pulse_duration_left * 17150
     distance_left_measured = round(distance_left_measured, 2)
@@ -161,7 +204,13 @@ def distance_calculation(focal_length, known_height, obj_height_in_frame):
     distance = (known_height * focal_length) / obj_height_in_frame
     horizontal_distance = math.sqrt(distance ** 2 - 81 ** 2)
     return horizontal_distance
+    
 
+def draw_vertical_line(x, color = (255, 0, 0)):
+    cv.line(frame, (x, 0), (x, 480), color, thickness = 2)
+
+
+steering_direction = ""
 
 stop()
 steer_forward()
@@ -169,6 +218,9 @@ time.sleep(0.1)
 servo_pwm.ChangeDutyCycle(0)
 
 if __name__ == "__main__":
+    csvFile = open("data.csv", "w")
+    csvWriter = csv.writer(csvFile, delimiter = ";")
+    
     while True:
         # Initialising variables
         last_distance_front, last_distance_right, last_distance_left = 0, 0, 0
@@ -212,6 +264,9 @@ if __name__ == "__main__":
         steering_start_time = time.time()
         red_obj_height_in_frame, green_obj_height_in_frame = 0, 0
         distance_red, distance_green = 0, 0
+        just_stopped_corner_turn_because_of_obstacle = False
+        
+        steeringDirectionInt = 75
 
         while True:
             # Starting if button is pressed
@@ -221,11 +276,15 @@ if __name__ == "__main__":
                 time.sleep(0.5)
                 forward(speed)
                 script_start_time = time.time()
+                dataList = ["time", "distanceFront", "distanceRight", "distanceLeft", "steeringDirection", "cornerCounter", "greenObjX", "fps"]
+                csvWriter.writerow(dataList)
                 break
 
         while is_running:
             has_corrected_left = False
             has_corrected_right = False
+            
+            frame_start_time = time.time()
 
             # Stopping if button is pressed
             if GPIO.input(button_pin) == GPIO.HIGH and (time.time() - script_start_time) > 2:
@@ -323,103 +382,53 @@ if __name__ == "__main__":
                 distance_nearest_obstacle = distance_red
                 nearest_obstacle_x = red_obj_x
                 nearest_obstacle_color = "red"
-
+            
+            draw_vertical_line(200)
+            draw_vertical_line(600)
+            
+            if distance_red != 0:
+                if red_obj_x > 200:
+                    draw_vertical_line(int(red_obj_x), (0, 0, 255))
+                else:
+                    draw_vertical_line(int(red_obj_x), (0, 255, 0))
+            if distance_green != 0:
+                if green_obj_x < 600:
+                    draw_vertical_line(int(green_obj_x), (0, 0, 255))
+                else:
+                    draw_vertical_line(int(green_obj_x), (0, 255, 0))
+            
+            video_writer.write(frame)
+            
             # Displaying frame (currently not used)
             # cv.imshow("Frame", frame)
             if cv.waitKey(1) & 0xFF == 27:
                 break
 
             # Eventually resetting variables to allow certain actions
-            if just_avoided_obstacle and not just_avoided_obstacle2:
-                just_avoided_obstacle = False
-            if not just_avoided_obstacle and just_avoided_obstacle2:
+            if not just_avoided_obstacle and just_avoided_obstacle2 and distance_measurement_is_up_to_date and (time.time() - avoiding_end_time) >= 0.8:
                 just_avoided_obstacle2 = False
+            if just_avoided_obstacle and just_avoided_obstacle2 and distance_measurement_is_up_to_date:
+                just_avoided_obstacle = False
 
             if ((time.time() - avoiding_end_time) > 1 or nearest_obstacle_color != avoiding_color or distance_nearest_obstacle > avoiding_distance) and not avoiding_allowed:
                 avoiding_allowed = True
 
-            # Driving around obstacles
-            if distance_red != 0 and nearest_obstacle_color == "red" and distance_right > 25 and not steering_blocked and avoiding_allowed and red_obj_x > 250 and distance_red < 500:
-                avoiding_duration = 0.65
-                print("Now correcting right (red obstacle)")
-                steer_forward()
-                backward(speed)
-                time.sleep(0.8)
-                forward(speed)
-                time.sleep(0.3)
-                steer_right()
-                time.sleep(avoiding_duration)
-                steer_forward()
-                time.sleep(avoiding_duration)
-                steer_left()
-                time.sleep(avoiding_duration / 2)
-                steer_forward()
-                just_avoided_obstacle = True
-                just_avoided_obstacle2 = True
-                avoiding_end_time = time.time()
-                avoiding_distance = distance_red
-                avoiding_color = "red"
-            if distance_green != 0 and nearest_obstacle_color == "green" and distance_left > 25 and not steering_blocked and avoiding_allowed and green_obj_x < 550 and distance_green < 500:
-                avoiding_duration = 0.65
-                print("Now correcting left (green obstacle)")
-                steer_forward()
-                backward(speed)
-                time.sleep(0.8)
-                forward(speed)
-                time.sleep(0.3)
-                steer_left()
-                time.sleep(avoiding_duration)
-                steer_forward()
-                time.sleep(avoiding_duration)
-                steer_right()
-                time.sleep(avoiding_duration / 2)
-                steer_forward()
-                just_avoided_obstacle = True
-                just_avoided_obstacle2 = True
-                avoiding_end_time = time.time()
-                avoiding_distance = distance_green
-                avoiding_color = "green"
-
-            if (distance_green != 0 and nearest_obstacle_color == "green" and distance_green < 300 and green_obj_x < 600) or (distance_red != 0 and nearest_obstacle_color == "red" and distance_red < 300 and red_obj_x > 200):
-                steer_forward()
-                backward(speed)
-                time.sleep(0.5)
-                forward(speed)
-                if steering_blocked:
-                    steering_end_time = time.time()
-                    steer_forward()
-                    print("Steering stopped")
-                    has_increased = False
-                    has_decreased = False
-                    steering_blocked = False
-                    steering_blocked2 = False
-                    steering_direction = "forward"
-                    corner_counter += 1
-                backward_time = time.time()
-
-            if corner_allowed and (time.time() - backward_time) < 1.5 and backward_time != script_start_time:
-                corner_allowed = False
-            if not corner_allowed and (time.time() - backward_time) < 1.5:
-                corner_allowed = True
-
             # Making a 90°-turn in the corners
             # Starting corner turn
-            if corner_allowed and distance_left > 130 and distance_front < 80 and not steering_blocked and not steering_blocked2 and corner_counter < 12 and (time.time() - steering_end_time) >= 1.5 and corner_direction != "right":
+            if corner_allowed and distance_left > 90 and distance_front < 80 and distance_measurement_is_up_to_date and not steering_blocked and not steering_blocked2 and corner_counter < 12 and (time.time() - steering_end_time) >= 1.5 and corner_direction != "right":
                 steering_blocked = True
                 steering_blocked2 = True
                 print("\nNow steering left\n")
                 steer_left()
-                steering_direction = "left"
                 measurement_counter = 1
                 steering_start_time = time.time()
                 if corner_direction == "":
                     corner_direction = "left"
-            if corner_allowed and distance_right > 130 and distance_front < 80 and not steering_blocked and not steering_blocked2 and corner_counter < 12 and (time.time() - steering_end_time) >= 1.5 and corner_direction != "left":
+            if corner_allowed and distance_right > 90 and distance_front < 80 and distance_measurement_is_up_to_date and not steering_blocked and not steering_blocked2 and corner_counter < 12 and (time.time() - steering_end_time) >= 1.5 and corner_direction != "left":
                 steering_blocked = True
                 steering_blocked2 = True
                 print("\nNow steering right\n")
                 steer_right()
-                steering_direction = "right"
                 measurement_counter = 1
                 steering_start_time = time.time()
                 if corner_direction == "":
@@ -440,7 +449,6 @@ if __name__ == "__main__":
                     has_increased = False
                     has_decreased = False
                     steering_blocked = False
-                    steering_direction = "forward"
                     corner_counter += 1
                     if corner_counter == 4:
                         forward(65)
@@ -450,7 +458,6 @@ if __name__ == "__main__":
                     has_increased = False
                     has_decreased = False
                     steering_blocked = False
-                    steering_direction = "forward"
                     corner_counter += 1
                     if corner_counter == 4:
                         forward(65)
@@ -462,9 +469,93 @@ if __name__ == "__main__":
                     has_increased = False
                     has_decreased = False
                     steering_blocked = False
-                    steering_direction = "forward"
                     corner_counter += 1
+            
+            # Driving around obstacles
+            if distance_red != 0 and nearest_obstacle_color == "red" and distance_right > 25 and not steering_blocked and avoiding_allowed and red_obj_x > 200 and distance_red < 600:
+                avoiding_duration = 0.5
+                if (time.time() - steering_end_time) >= 0.5:
+                    longer_countersteering = True
+                else:
+                    longer_countersteering = False
+                print("Now correcting right (red obstacle)")
+                steer_forward()
+                backward(speed)
+                time.sleep(1.2)
+                forward(speed)
+                time.sleep(0.2)
+                steer_right()
+                time.sleep(avoiding_duration)
+                steer_forward()
+                time.sleep(avoiding_duration / 1.4)
+                if not just_stopped_corner_turn_because_of_obstacle:
+                    steer_left()
+                    if longer_countersteering:
+                        time.sleep(avoiding_duration / 1.25)
+                    else:
+                        time.sleep(avoiding_duration / 100)
+                    steer_forward()
+                just_avoided_obstacle = True
+                just_avoided_obstacle2 = True
+                avoiding_end_time = time.time()
+                avoiding_distance = distance_red
+                avoiding_color = "red"
+            if distance_green != 0 and nearest_obstacle_color == "green" and distance_left > 25 and not steering_blocked and avoiding_allowed and green_obj_x <600 and distance_green < 600:
+                avoiding_duration = 0.5
+                if (time.time() - steering_end_time) >= 0.5:
+                    longer_countersteering = True
+                else:
+                    longer_countersteering = False
+                print("Now correcting left (green obstacle)")
+                steer_forward()
+                backward(speed)
+                time.sleep(1.2)
+                forward(speed)
+                time.sleep(0.2)
+                steer_left()
+                time.sleep(avoiding_duration)
+                steer_forward()
+                time.sleep(avoiding_duration / 1.4)
+                if not just_stopped_corner_turn_because_of_obstacle:
+                    steer_right()
+                    if longer_countersteering:
+                        time.sleep(avoiding_duration / 1.25)
+                    else:
+                        time.sleep(avoiding_duration / 100)
+                    steer_forward()
+                just_avoided_obstacle = True
+                just_avoided_obstacle2 = True
+                avoiding_end_time = time.time()
+                avoiding_distance = distance_green
+                avoiding_color = "green"
+            
+            just_stopped_corner_turn_because_of_obstacle = False
+            
+            if (distance_green != 0 and nearest_obstacle_color == "green" and distance_green < 350 and green_obj_x < 600) or (distance_red != 0 and nearest_obstacle_color == "red" and distance_red < 350 and red_obj_x > 200):
+                steer_forward()
+                backward(speed)
+                time.sleep(0.6)
+                forward(speed)
+                just_avoided_obstacle = True
+                just_avoided_obstacle2 = True
+                avoiding_end_time = time.time()
+                if steering_blocked:
+                    steering_end_time = time.time()
+                    steer_forward()
+                    print("Steering stopped")
+                    has_increased = False
+                    has_decreased = False
+                    steering_blocked = False
+                    steering_blocked2 = False
+                    just_stopped_corner_turn_because_of_obstacle = True
+                    corner_counter += 1
+                backward_time = time.time()
 
+            if corner_allowed and (time.time() - avoiding_end_time) < 1.5 and avoiding_end_time != script_start_time:
+                corner_allowed = False
+            if not corner_allowed and (time.time() - avoiding_end_time) < 1.5:
+                corner_allowed = True
+            
             # Calculating the change of distance_front, distance_right and distance_left per second
             if (current_distance_measurement_time - last_distance_measurement_time) != 0 and distance_measurement_is_up_to_date:
                 distance_front_change = (distance_front - last_distance_front) / (current_distance_measurement_time - last_distance_measurement_time)
@@ -473,18 +564,18 @@ if __name__ == "__main__":
             if abs(distance_right_change) > 60:
                 distance_right_change = 0
             if abs(distance_left_change) > 60:
-                distance_left_change = 0
-
+                distance_left_change = 0 
+            
             # Preventing getting too close to a wall
             if (distance_left + distance_right) < 110:
                 # Correcting if the distance to the sides gets too small
-                if distance_right < 20 and distance_left > 35 and distance_measurement_is_up_to_date and not steering_blocked and (round(last_distance_right) > round(distance_right) or is_obstacle_race):
+                if distance_right < 20 and distance_left > 35 and distance_measurement_is_up_to_date and not just_avoided_obstacle and not just_avoided_obstacle2 and not steering_blocked and (round(last_distance_right) >= round(distance_right) or is_obstacle_race):
                     steer_left()
                     print("Now correcting left (distance_right too small)")
                     has_corrected_left = True
                     time.sleep(0.15)
                     steer_forward()
-                if distance_left < 20 and distance_right > 35 and distance_measurement_is_up_to_date and not steering_blocked and (round(last_distance_left) > round(distance_left) or is_obstacle_race):
+                if distance_left < 20 and distance_right > 35 and distance_measurement_is_up_to_date and not just_avoided_obstacle and not just_avoided_obstacle2 and not steering_blocked and (round(last_distance_left) >= round(distance_left) or is_obstacle_race):
                     steer_right()
                     print("Now correcting right (distance_left too small)")
                     has_corrected_right = True
@@ -492,13 +583,13 @@ if __name__ == "__main__":
                     steer_forward()
 
                 # Correcting if the distance to the sides changes too fast
-                if distance_right_change <= -3 and distance_measurement_is_up_to_date and not steering_blocked and distance_left_change >= 1.5 and distance_left >= distance_right and not just_avoided_obstacle:
+                if distance_right_change <= -3 and distance_measurement_is_up_to_date and not steering_blocked and distance_left_change >= 0 and distance_left >= distance_right and not just_avoided_obstacle and not just_avoided_obstacle2:
                     steer_left()
                     print("Now correcting left (distanceChange)")
                     has_corrected_left = True
                     time.sleep(0.1)
                     steer_forward()
-                if distance_left_change <= -3 and distance_measurement_is_up_to_date and not steering_blocked and distance_right_change >= 1.5 and distance_right >= distance_left and not just_avoided_obstacle:
+                if distance_left_change <= -3 and distance_measurement_is_up_to_date and not steering_blocked and distance_right_change >= 0 and distance_right >= distance_left and not just_avoided_obstacle and not just_avoided_obstacle2:
                     steer_right()
                     print("Now correcting right (distanceChange)")
                     has_corrected_right = True
@@ -519,9 +610,28 @@ if __name__ == "__main__":
                         has_corrected_right = True
                         time.sleep(0.15)
                         steer_forward()
-
+            
+            frame_end_time = time.time()
+            fps = 1 / (frame_end_time - frame_start_time)
+            
+            if distance_measurement_is_up_to_date:
+                if steering_direction == "forward":
+                    steeringDirectionInt = 75
+                if steering_direction == "left":
+                    steeringDirectionInt = 25
+                if steering_direction == "right":
+                    steeringDirectionInt = 125
+                if has_corrected_left:
+                    steeringDirectionInt = 25
+                    has_corrected_left = False
+                if has_corrected_right:
+                    steeringDirectionInt = 125
+                    has_corrected_right = False
+                dataList = [(time.time() - script_start_time), distance_front, distance_right, distance_left, steeringDirectionInt, (corner_counter * 10), green_obj_x, fps]
+                csvWriter.writerow(dataList)
+            
             # Stopping after three rounds
-            if corner_counter >= 12:
+            if corner_counter >= 12 and not is_obstacle_race:
                 if distance_front > 150:
                     stopping_enabled = True
                     stopping_enabled_time = time.time()
@@ -532,6 +642,16 @@ if __name__ == "__main__":
                     servo_pwm.ChangeDutyCycle(0)
                     is_running = False
                     print("\nDone!\n")
-
-cap.release()
-cv.destroyAllWindows()
+                        
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_x:
+                        stop()
+                        steer_forward()
+                        time.sleep(0.25)
+                        servo_pwm.ChangeDutyCycle(0)
+                        steering_blocked = True
+                        csvFile.close()
+                        video_writer.release()
+                        cap.release()
+                        cv.destroyAllWindows()
