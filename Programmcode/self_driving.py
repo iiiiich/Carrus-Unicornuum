@@ -278,13 +278,13 @@ if __name__ == "__main__":
                 script_start_time = time.time()
                 dataList = ["time", "distanceFront", "distanceRight", "distanceLeft", "steeringDirection", "cornerCounter", "greenObjX", "fps"]
                 csvWriter.writerow(dataList)
+                frame_start_time = time.time()
                 break
 
         while is_running:
             has_corrected_left = False
             has_corrected_right = False
-            
-            frame_start_time = time.time()
+        
 
             # Stopping if button is pressed
             if GPIO.input(button_pin) == GPIO.HIGH and (time.time() - script_start_time) > 2:
@@ -299,12 +299,12 @@ if __name__ == "__main__":
             ultrasonic_distance_measurement()
 
             # Taking each three measurements from the ultrasonic distance sensors and forming the median of these
-            if 0 < distance_front_measured < 300:
+            if 0 < distance_front_measured < 350:
                 distances_front.append(distance_front_measured)
                 distance_measurement_is_up_to_date = False
-            if 0 < distance_right_measured < 300:
+            if 0 < distance_right_measured < 350:
                 distances_right.append(distance_right_measured)
-            if 0 < distance_left_measured < 300:
+            if 0 < distance_left_measured < 350:
                 distances_left.append(distance_left_measured)
             if len(distances_front) == 3:
                 distances_front.sort()
@@ -397,7 +397,7 @@ if __name__ == "__main__":
                 else:
                     draw_vertical_line(int(green_obj_x), (0, 255, 0))
             
-            video_writer.write(frame)
+            #video_writer.write(frame)
             
             # Displaying frame (currently not used)
             # cv.imshow("Frame", frame)
@@ -611,10 +611,10 @@ if __name__ == "__main__":
                         time.sleep(0.15)
                         steer_forward()
             
-            frame_end_time = time.time()
-            fps = 1 / (frame_end_time - frame_start_time)
-            
             if distance_measurement_is_up_to_date:
+                frame_end_time = time.time()
+                fps = 1 / (frame_end_time - frame_start_time)
+                
                 if steering_direction == "forward":
                     steeringDirectionInt = 75
                 if steering_direction == "left":
@@ -629,20 +629,25 @@ if __name__ == "__main__":
                     has_corrected_right = False
                 dataList = [(time.time() - script_start_time), distance_front, distance_right, distance_left, steeringDirectionInt, (corner_counter * 10), green_obj_x, fps]
                 csvWriter.writerow(dataList)
+                frame_start_time = time.time()
             
             # Stopping after three rounds
-            if corner_counter >= 12 and not is_obstacle_race:
-                if distance_front > 150:
+            if corner_counter >= 12:
+                if distance_front > 150 and not stopping_enabled:
                     stopping_enabled = True
                     stopping_enabled_time = time.time()
-                if stopping_enabled and distance_front < 165 and (time.time() - stopping_enabled_time) >= 1.2:
+                if stopping_enabled and distance_front < 165 and (time.time() - stopping_enabled_time) >= 0.6:
                     stop()
                     steer_forward()
                     time.sleep(0.25)
                     servo_pwm.ChangeDutyCycle(0)
                     is_running = False
                     print("\nDone!\n")
-                        
+                    csvFile.close()
+                    video_writer.release()
+                    cap.release()
+                    cv.destroyAllWindows()
+            
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_x:
