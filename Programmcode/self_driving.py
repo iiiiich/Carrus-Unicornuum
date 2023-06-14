@@ -17,10 +17,10 @@ GPIO.setwarnings(False)
 speed = 60
 
 # HSV limits for color detection
-lower_red = np.array([3, 185, 90])
-upper_red = np.array([12, 255, 255])
-lower_green = np.array([60, 140, 45])
-upper_green = np.array([80, 255, 160])
+lower_red = np.array([2, 175, 47])
+upper_red = np.array([12, 255, 248])
+lower_green = np.array([59, 120, 28])
+upper_green = np.array([77, 255, 148])
 
 # Variables for camera distance calculation
 known_height = 100
@@ -265,6 +265,7 @@ if __name__ == "__main__":
         red_obj_height_in_frame, green_obj_height_in_frame = 0, 0
         distance_red, distance_green = 0, 0
         just_stopped_corner_turn_because_of_obstacle = False
+        max_distance_front = 0
         
         steeringDirectionInt = 75
 
@@ -324,14 +325,18 @@ if __name__ == "__main__":
                 last_distance_left = distance_left
                 distance_left = round(distances_left[1], 2)
                 distances_left = []
-
+            
             # Waiting until a new median of the measurements of the ultrasonic distance sensors is formed before allowing steering again
             if measurement_counter > 0:
                 measurement_counter += 1
                 if measurement_counter >= 4 and (time.time() - steering_start_time) >= 0.5:
                     measurement_counter = 0
                     steering_blocked2 = False
-
+            
+            print("f: " + str(distance_front_measured) + " r: " + str(distance_right_measured) + " l: " + str(distance_left_measured))
+            if distance_measurement_is_up_to_date:
+                print("\nf: " + str(distance_front) + " r: " + str(distance_right) + " l: " + str(distance_left) + " Hindernis: " + str(distance_nearest_obstacle) + "\n")
+            
             # Reading camera image
             success, frame = cap.read()
             if not success:
@@ -397,7 +402,7 @@ if __name__ == "__main__":
                 else:
                     draw_vertical_line(int(green_obj_x), (0, 255, 0))
             
-            #video_writer.write(frame)
+            video_writer.write(frame)
             
             # Displaying frame (currently not used)
             # cv.imshow("Frame", frame)
@@ -434,10 +439,11 @@ if __name__ == "__main__":
                 if corner_direction == "":
                     corner_direction = "right"
 
-            if steering_blocked and not has_increased and round(last_distance_front) < (round(distance_front) - 25):
+            if steering_blocked and not has_increased and round(last_distance_front) < (round(distance_front) - 25) and distance_front >= 100:
+                max_distance_front = distance_front
                 has_increased = True
 
-            if steering_blocked and has_increased and round(last_distance_front) > (round(distance_front) - 10):
+            if steering_blocked and has_increased and max_distance_front > (distance_front + 11):
                 has_decreased = True
 
             # Stopping corner turn
@@ -450,8 +456,6 @@ if __name__ == "__main__":
                     has_decreased = False
                     steering_blocked = False
                     corner_counter += 1
-                    if corner_counter == 4:
-                        forward(65)
                 if steering_direction == "right":
                     steer_forward()
                     print("Steering stopped")
@@ -459,13 +463,14 @@ if __name__ == "__main__":
                     has_decreased = False
                     steering_blocked = False
                     corner_counter += 1
-                    if corner_counter == 4:
-                        forward(65)
             if is_obstacle_race and steering_blocked and not steering_blocked2:
                 if distance_nearest_obstacle != 0 and 550 > nearest_obstacle_x > 250:
                     steering_end_time = time.time()
+                    print("Steering stopped (obstacle)")
                     steer_forward()
-                    print("Steering stopped")
+                    backward(speed)
+                    time.sleep(0.5)
+                    forward(speed)
                     has_increased = False
                     has_decreased = False
                     steering_blocked = False
@@ -636,7 +641,7 @@ if __name__ == "__main__":
                 if distance_front > 150 and not stopping_enabled:
                     stopping_enabled = True
                     stopping_enabled_time = time.time()
-                if stopping_enabled and distance_front < 165 and (time.time() - stopping_enabled_time) >= 0.6:
+                if stopping_enabled and distance_front < 165 and (time.time() - stopping_enabled_time) >= 0.5:
                     stop()
                     steer_forward()
                     time.sleep(0.25)
