@@ -199,6 +199,8 @@ def distance_calculation(focal_length, known_height, obj_height_in_frame):
     return horizontal_distance
     
 
+steering_direction = ""
+
 stop()
 steer_forward()
 time.sleep(0.1)
@@ -207,7 +209,6 @@ servo_pwm.ChangeDutyCycle(0)
 if __name__ == "__main__":
     while True:
         # Initialising variables
-        steering_direction = ""
         last_distance_front, last_distance_right, last_distance_left = 0, 0, 0
         distances_front, distances_right, distances_left = [], [], []
         distance_front_measured, distance_right_measured, distance_left_measured = 0, 0, 0
@@ -366,17 +367,6 @@ if __name__ == "__main__":
                 distance_nearest_obstacle = distance_red
                 nearest_obstacle_x = red_obj_x
                 nearest_obstacle_color = "red"
-            
-            if distance_red != 0:
-                if red_obj_x > 200:
-                    draw_vertical_line(int(red_obj_x), (0, 0, 255))
-                else:
-                    draw_vertical_line(int(red_obj_x), (0, 255, 0))
-            if distance_green != 0:
-                if green_obj_x < 600:
-                    draw_vertical_line(int(green_obj_x), (0, 0, 255))
-                else:
-                    draw_vertical_line(int(green_obj_x), (0, 255, 0))
             
             # Displaying frame (currently not used)
             # cv.imshow("Frame", frame)
