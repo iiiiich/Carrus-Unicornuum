@@ -5,11 +5,6 @@ import RPi.GPIO as GPIO
 import cv2 as cv
 import numpy as np
 
-import csv
-import pygame
-
-pygame.init()
-screen = pygame.display.set_mode((500, 400))
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
@@ -58,8 +53,6 @@ cap = cv.VideoCapture(0)
 if not cap.isOpened():
     print("Cannot open camera")
     exit()
-
-video_writer = cv.VideoWriter("video.mp4", cv.VideoWriter_fourcc(*"DIVX"), 10, (800, 400))
 
 
 # Function to move forward
@@ -206,23 +199,15 @@ def distance_calculation(focal_length, known_height, obj_height_in_frame):
     return horizontal_distance
     
 
-def draw_vertical_line(x, color = (255, 0, 0)):
-    cv.line(frame, (x, 0), (x, 480), color, thickness = 2)
-
-
-steering_direction = ""
-
 stop()
 steer_forward()
 time.sleep(0.1)
 servo_pwm.ChangeDutyCycle(0)
 
 if __name__ == "__main__":
-    csvFile = open("data.csv", "w")
-    csvWriter = csv.writer(csvFile, delimiter = ";")
-    
     while True:
         # Initialising variables
+        steering_direction = ""
         last_distance_front, last_distance_right, last_distance_left = 0, 0, 0
         distances_front, distances_right, distances_left = [], [], []
         distance_front_measured, distance_right_measured, distance_left_measured = 0, 0, 0
@@ -277,8 +262,6 @@ if __name__ == "__main__":
                 time.sleep(0.5)
                 forward(speed)
                 script_start_time = time.time()
-                dataList = ["time", "distanceFront", "distanceRight", "distanceLeft", "steeringDirection", "cornerCounter", "greenObjX", "fps"]
-                csvWriter.writerow(dataList)
                 frame_start_time = time.time()
                 break
 
@@ -333,10 +316,6 @@ if __name__ == "__main__":
                     measurement_counter = 0
                     steering_blocked2 = False
             
-            print("f: " + str(distance_front_measured) + " r: " + str(distance_right_measured) + " l: " + str(distance_left_measured))
-            if distance_measurement_is_up_to_date:
-                print("\nf: " + str(distance_front) + " r: " + str(distance_right) + " l: " + str(distance_left) + " Hindernis: " + str(distance_nearest_obstacle) + "\n")
-            
             # Reading camera image
             success, frame = cap.read()
             if not success:
@@ -388,9 +367,6 @@ if __name__ == "__main__":
                 nearest_obstacle_x = red_obj_x
                 nearest_obstacle_color = "red"
             
-            draw_vertical_line(200)
-            draw_vertical_line(600)
-            
             if distance_red != 0:
                 if red_obj_x > 200:
                     draw_vertical_line(int(red_obj_x), (0, 0, 255))
@@ -401,8 +377,6 @@ if __name__ == "__main__":
                     draw_vertical_line(int(green_obj_x), (0, 0, 255))
                 else:
                     draw_vertical_line(int(green_obj_x), (0, 255, 0))
-            
-            video_writer.write(frame)
             
             # Displaying frame (currently not used)
             # cv.imshow("Frame", frame)
@@ -632,8 +606,6 @@ if __name__ == "__main__":
                 if has_corrected_right:
                     steeringDirectionInt = 125
                     has_corrected_right = False
-                dataList = [(time.time() - script_start_time), distance_front, distance_right, distance_left, steeringDirectionInt, (corner_counter * 10), green_obj_x, fps]
-                csvWriter.writerow(dataList)
                 frame_start_time = time.time()
             
             # Stopping after three rounds
@@ -653,15 +625,3 @@ if __name__ == "__main__":
                     cap.release()
                     cv.destroyAllWindows()
             
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_x:
-                        stop()
-                        steer_forward()
-                        time.sleep(0.25)
-                        servo_pwm.ChangeDutyCycle(0)
-                        steering_blocked = True
-                        csvFile.close()
-                        video_writer.release()
-                        cap.release()
-                        cv.destroyAllWindows()
