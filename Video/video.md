@@ -1,3 +1,3 @@
-[Eröffnungsrennen](https://youtu.be/Nr4BDWTkn_w)
+[Eröffnungsrennen](https://youtube.com/shorts/PJZzOXuDNMc)
 
-[Hindernisrennen](https://youtu.be/GSZcrrLbtQI)
+[Hindernisrennen](https://youtube.com/shorts/gS_TK9WKWAc)
