@@ -21,7 +21,7 @@ upper_green = np.array([77, 255, 148])
 known_height = 100
 focal_length = 567.0
 
-# Initialising button, motors and ultrasonic distance sensors
+# GPIO pin assignments for button, motors and ultrasonic distance sensors
 button_pin = 40
 ena, in1, in2 = 3, 5, 7
 servo = 29
@@ -30,10 +30,13 @@ trig_right, echo_right = 11, 15
 trig_left, echo_left = 12, 16
 
 GPIO.setup(button_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+# Motor control pins as outputs
 GPIO.setup(ena, GPIO.OUT)
 GPIO.setup(in1, GPIO.OUT)
 GPIO.setup(in2, GPIO.OUT)
+# Servo control pin as output
 GPIO.setup(servo, GPIO.OUT)
+# Ultrasonic sensor pins as outputs (triggers) and inputs (echoes)
 GPIO.setup(trig_front, GPIO.OUT)
 GPIO.setup(echo_front, GPIO.IN)
 GPIO.setup(trig_right, GPIO.OUT)
@@ -41,6 +44,7 @@ GPIO.setup(echo_right, GPIO.IN)
 GPIO.setup(trig_left, GPIO.OUT)
 GPIO.setup(echo_left, GPIO.IN)
 
+# Initialize PWM for motor and servo control
 motor_pwm = GPIO.PWM(ena, 100)
 motor_pwm.start(0)
 servo_pwm = GPIO.PWM(servo, 50)
@@ -55,21 +59,21 @@ if not cap.isOpened():
     exit()
 
 
-# Function to move forward
+# Function to move forward at a specified speed
 def forward(x):
     motor_pwm.ChangeDutyCycle(x)
     GPIO.output(in1, GPIO.HIGH)
     GPIO.output(in2, GPIO.LOW)
 
 
-# Function to move backward
+# Function to move backward at a specified speed
 def backward(x):
     motor_pwm.ChangeDutyCycle(x)
     GPIO.output(in1, GPIO.LOW)
     GPIO.output(in2, GPIO.HIGH)
 
 
-# Function to stop
+# Function to stop the motor
 def stop():
     GPIO.output(in1, GPIO.LOW)
     GPIO.output(in2, GPIO.LOW)
